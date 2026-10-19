@@ -1,4 +1,16 @@
-export default function GridProducts({ produtos, carregando, termoBusca, totalProdutos, totalPages, paginaAtual, setPaginaAtual, handleSearchSubmit, searchInput, setSearchInput }) {
+export default function GridProducts({
+    produtos,
+    carregando,
+    termoBusca,
+    totalProdutos,
+    totalPages,
+    paginaAtual,
+    setPaginaAtual,
+    handleSearchSubmit,
+    searchInput,
+    setSearchInput,
+    onAddToCart
+}) {
     return (
         <section className="bg-white border border-slate-200/85 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
@@ -89,7 +101,10 @@ export default function GridProducts({ produtos, carregando, termoBusca, totalPr
                                         </span>
                                     )}
                                 </div>
-                                <button className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors">
+                                <button
+                                    onClick={() => onAddToCart && onAddToCart(produto)}
+                                    className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-2xs"
+                                >
                                     Adicionar
                                 </button>
                             </div>

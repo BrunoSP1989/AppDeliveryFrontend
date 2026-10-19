@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import StoreHeader from '@/components/StoreHeader';
-import GridProducts from '@/components/GridProducts';
+import StoreHeader from '../../components/StoreHeader';
+import GridProducts from '../../components/GridProducts';
+import Cart from '../../components/Cart';
 
 export default function PaginaLoja() {
     const params = useParams();
@@ -21,12 +22,49 @@ export default function PaginaLoja() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalProdutos, setTotalProdutos] = useState(0);
 
+    // Estado do Carrinho
+    const [cartItems, setCartItems] = useState([]);
+
+    // Funções de manipulação do carrinho
+    const handleAddToCart = (produto) => {
+        setCartItems((prev) => {
+            const itemId = produto._id || produto.id;
+            const itemExiste = prev.find((item) => (item._id || item.id) === itemId);
+
+            if (itemExiste) {
+                return prev.map((item) =>
+                    (item._id || item.id) === itemId
+                        ? { ...item, quantidade: (item.quantidade || 1) + 1 }
+                        : item
+                );
+            }
+            return [...prev, { ...produto, quantidade: 1 }];
+        });
+    };
+
+    const handleUpdateQuantity = (id, novaQtd) => {
+        if (novaQtd <= 0) {
+            handleRemoveItem(id);
+            return;
+        }
+        setCartItems((prev) =>
+            prev.map((item) => (item._id || item.id) === id ? { ...item, quantidade: novaQtd } : item)
+        );
+    };
+
+    const handleRemoveItem = (id) => {
+        setCartItems((prev) => prev.filter((item) => (item._id || item.id) !== id));
+    };
+
+    const handleClearCart = () => {
+        setCartItems([]);
+    };
+
     useEffect(() => {
         async function getStore() {
             try {
                 setCarregandoLoja(true);
                 setErroLoja('');
-
                 const resposta = await axios.get(`http://localhost:3000/store/${slug}`);
                 setStore(resposta.data.store);
             } catch (erro) {
@@ -36,24 +74,18 @@ export default function PaginaLoja() {
                 setCarregandoLoja(false);
             }
         }
-
-        if (slug) {
-            getStore();
-        }
+        if (slug) getStore();
     }, [slug]);
 
     useEffect(() => {
         async function getProducts() {
             try {
                 setCarregandoProdutos(true);
-
                 let url = `http://localhost:3000/${slug}/products?page=${paginaAtual}&limit=8`;
                 if (termoBusca.trim()) {
                     url += `&search=${encodeURIComponent(termoBusca.trim())}`;
                 }
-
                 const resposta = await axios.get(url);
-
                 setProdutos(resposta.data.docs || []);
                 setTotalPages(resposta.data.totalPages || 1);
                 setTotalProdutos(resposta.data.totalDocs || 0);
@@ -63,10 +95,7 @@ export default function PaginaLoja() {
                 setCarregandoProdutos(false);
             }
         }
-
-        if (slug) {
-            getProducts();
-        }
+        if (slug) getProducts();
     }, [slug, paginaAtual, termoBusca]);
 
     const handleSearchSubmit = (e) => {
@@ -107,13 +136,13 @@ export default function PaginaLoja() {
     }
 
     return (
-        <main className="min-h-screen bg-cyan-50/20 py-8 px-4 sm:px-6 lg:px-8">
+        <main className="min-h-screen bg-cyan-50/20 py-8 px-4 sm:px-6 lg:px-8 relative">
             <div className="max-w-7xl mx-auto space-y-6">
 
-                {/* Cabeçalho Modularizado */}
+                {/* Cabeçalho */}
                 <StoreHeader store={store} />
 
-                {/* Grid de Produtos Modularizado */}
+                {/* Grid de Produtos (Passando a função de adicionar ao carrinho) */}
                 <GridProducts
                     produtos={produtos}
                     carregando={carregandoProdutos}
@@ -125,6 +154,16 @@ export default function PaginaLoja() {
                     handleSearchSubmit={handleSearchSubmit}
                     searchInput={searchInput}
                     setSearchInput={setSearchInput}
+                    onAddToCart={handleAddToCart}
+                />
+
+                {/* Componente Flutuante do Carrinho */}
+                <Cart
+                    cartItems={cartItems}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveItem={handleRemoveItem}
+                    onClearCart={handleClearCart}
+                    storeId={store?._id || store?.id}
                 />
 
             </div>
