@@ -64,6 +64,16 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
             await axios.post(`http://localhost:3000/create-order`, payload);
 
             setSucessoMsg('Pedido realizado com sucesso!');
+            setClient({
+                nome: '',
+                telefone: '',
+                endereco: '',
+                numero: '',
+                bairro: '',
+                cidade: '',
+                estado: '',
+                cep: ''
+            });
             onClearCart();
             setTimeout(() => {
                 setSucessoMsg('');
