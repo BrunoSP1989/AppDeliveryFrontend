@@ -1,11 +1,11 @@
 export default function GridProducts({
-    produtos,
-    carregando,
-    termoBusca,
-    totalProdutos,
+    products,
+    loading,
+    searchTerm,
+    totalProducts,
     totalPages,
-    paginaAtual,
-    setPaginaAtual,
+    currentPage,
+    setCurrentPage,
     handleSearchSubmit,
     searchInput,
     setSearchInput,
@@ -16,7 +16,7 @@ export default function GridProducts({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900">Catálogo de Produtos</h2>
-                    <p className="text-sm text-slate-500 mt-0.5">Explore os itens disponíveis ({totalProdutos} encontrados).</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Explore os itens disponíveis ({totalProducts} encontrados).</p>
                 </div>
 
                 <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full md:w-auto">
@@ -34,7 +34,7 @@ export default function GridProducts({
                             className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all"
                         />
                     </div>
-                    {/* Botão de busca em Azul Piscina */}
+
                     <button
                         type="submit"
                         className="px-4 py-2 bg-cyan-500 text-white text-sm font-semibold rounded-xl hover:bg-cyan-600 transition-colors shrink-0 shadow-sm"
@@ -44,32 +44,32 @@ export default function GridProducts({
                 </form>
             </div>
 
-            {carregando ? (
+            {loading ? (
                 <div className="py-16 text-center">
                     <div className="w-6 h-6 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     <p className="text-sm text-slate-500">Carregando produtos...</p>
                 </div>
-            ) : produtos.length === 0 ? (
+            ) : products.length === 0 ? (
                 <div className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center bg-slate-50/50">
                     <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                     <p className="text-sm font-medium text-slate-600">Nenhum produto encontrado.</p>
-                    {termoBusca && (
+                    {searchTerm && (
                         <p className="text-xs text-slate-400 mt-1">Tente buscar por outro termo ou limpe a pesquisa.</p>
                     )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {produtos.map((produto) => (
+                    {products.map((product) => (
                         <div
-                            key={produto._id || produto.id}
+                            key={product._id || product.id}
                             className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
                         >
                             <div>
                                 <div className="w-full h-40 bg-slate-50 border border-slate-100 rounded-xl mb-4 flex items-center justify-center text-slate-400 group-hover:bg-slate-100/80 transition-colors overflow-hidden">
-                                    {produto.fotoUrl ? (
-                                        <img src={produto.fotoUrl} alt={produto.descricao} className="w-full h-full object-cover rounded-xl" />
+                                    {product.fotoUrl ? (
+                                        <img src={product.fotoUrl} alt={product.descricao} className="w-full h-full object-cover rounded-xl" />
                                     ) : (
                                         <div className="flex items-center gap-3 p-4">
                                             <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-cyan-600 shrink-0">
@@ -85,24 +85,23 @@ export default function GridProducts({
                                     )}
                                 </div>
                                 <h3 className="font-semibold text-slate-800 text-sm line-clamp-2 leading-snug">
-                                    {produto.descricao}
+                                    {product.descricao}
                                 </h3>
                             </div>
 
                             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                                 <div className="flex flex-col">
-                                    {/* Preço com azul forte e tom leve */}
                                     <span className="text-base font-bold text-cyan-700">
-                                        {produto.precoVenda ? `R$ ${Number(produto.precoVenda).toFixed(2)}` : 'Consulte'}
+                                        {product.precoVenda ? `R$ ${Number(product.precoVenda).toFixed(2)}` : 'Consulte'}
                                     </span>
-                                    {produto.unidade && (
+                                    {product.unidade && (
                                         <span className="text-[11px] text-slate-400 font-medium uppercase">
-                                            Un: {produto.unidade}
+                                            Un: {product.unidade}
                                         </span>
                                     )}
                                 </div>
                                 <button
-                                    onClick={() => onAddToCart && onAddToCart(produto)}
+                                    onClick={() => onAddToCart && onAddToCart(product)}
                                     className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-2xs"
                                 >
                                     Adicionar
@@ -116,19 +115,18 @@ export default function GridProducts({
             {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                     <button
-                        onClick={() => setPaginaAtual((prev) => Math.max(prev - 1, 1))}
-                        disabled={paginaAtual === 1}
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
                         className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         Anterior
                     </button>
                     <span className="text-sm font-medium text-slate-600">
-                        Página <strong className="text-slate-900">{paginaAtual}</strong> de <strong className="text-slate-900">{totalPages}</strong>
+                        Página <strong className="text-slate-900">{currentPage}</strong> de <strong className="text-slate-900">{totalPages}</strong>
                     </span>
-                    {/* Botão Próxima em verde suave */}
                     <button
-                        onClick={() => setPaginaAtual((prev) => Math.min(prev + 1, totalPages))}
-                        disabled={paginaAtual === totalPages}
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
                         className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         Próxima

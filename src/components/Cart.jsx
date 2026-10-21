@@ -6,9 +6,10 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
     const [isOpen, setIsOpen] = useState(false);
     const [step, setStep] = useState('cart'); // 'cart' ou 'checkout'
     const [loading, setLoading] = useState(false);
-    const [sucessoMsg, setSucessoMsg] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
+    const [successMsg, setSuccessMsg] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('DINHEIRO');
 
+    // As chaves internas são mantidas em PT-BR para casar com o payload do Backend
     const [client, setClient] = useState({
         nome: '',
         telefone: '',
@@ -20,13 +21,13 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
         cep: ''
     });
 
-    const totalCart = cartItems.reduce((acc, item) => {
-        const preco = Number(item.precoVenda) || 0;
-        const qtd = Number(item.quantidade) || 1;
-        return acc + preco * qtd;
+    const cartTotal = cartItems.reduce((acc, item) => {
+        const price = Number(item.precoVenda) || 0;
+        const qty = Number(item.quantity) || 1; // 👈 Atualizado para quantity
+        return acc + price * qty;
     }, 0);
 
-    const totalItens = cartItems.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+    const totalItems = cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0); // 👈 Atualizado para quantity
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -40,22 +41,21 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
         try {
             setLoading(true);
             const orderItems = cartItems.map((item) => {
-                const produtoId = item.id || item._id || item.idProduto;
+                const productId = item.id || item._id || item.idProduto;
 
                 return {
-                    productId: produtoId,
-                    id: produtoId,
-                    _id: produtoId,
+                    productId: productId,
+                    id: productId,
+                    _id: productId,
                     idProduto: item.idProduto,
                     descricao: item.descricao,
-                    quantidade: item.quantidade || 1,
+                    quantidade: item.quantity || 1, // 👈 Enviando como 'quantidade' pro backend ler certo
                     precoVenda: item.precoVenda
                 };
             });
 
-            // Payload ajustado conforme a sua rota do backend
             const payload = {
-                storeId: storeId, // 👈 Enviando o storeId no body
+                storeId: storeId,
                 items: orderItems,
                 client: client,
                 PaymentMethod: paymentMethod
@@ -63,7 +63,7 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
 
             await axios.post(`http://localhost:3000/create-order`, payload);
 
-            setSucessoMsg('Pedido realizado com sucesso!');
+            setSuccessMsg('Pedido realizado com sucesso!');
             setClient({
                 nome: '',
                 telefone: '',
@@ -76,18 +76,17 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
             });
             onClearCart();
             setTimeout(() => {
-                setSucessoMsg('');
+                setSuccessMsg('');
                 setStep('cart');
                 setIsOpen(false);
             }, 3000);
 
-        } catch (erro) {
-            console.log(erro);
+        } catch (error) {
             console.error('Erro detalhado ao criar pedido (404):', {
-                mensagem: erro.message,
-                status: erro.response?.status,
-                dados: erro.response?.data,
-                urlChamada: erro.config?.url
+                mensagem: error.message,
+                status: error.response?.status,
+                dados: error.response?.data,
+                urlChamada: error.config?.url
             });
             alert('Não foi possível finalizar o pedido. Verifique os dados e tente novamente.');
         } finally {
@@ -106,9 +105,9 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                {totalItens > 0 && (
+                {totalItems > 0 && (
                     <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
-                        {totalItens}
+                        {totalItems}
                     </span>
                 )}
             </button>
@@ -126,7 +125,7 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                                     </h2>
                                     {step === 'cart' && (
                                         <span className="bg-cyan-50 text-cyan-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-cyan-100">
-                                            {totalItens} {totalItens === 1 ? 'item' : 'itens'}
+                                            {totalItems} {totalItems === 1 ? 'item' : 'itens'}
                                         </span>
                                     )}
                                 </div>
@@ -140,14 +139,14 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                                 </button>
                             </div>
 
-                            {sucessoMsg && (
+                            {successMsg && (
                                 <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium rounded-xl text-center">
-                                    {sucessoMsg}
+                                    {successMsg}
                                 </div>
                             )}
 
                             {/* Passo 1: Lista do Carrinho */}
-                            {step === 'cart' && !sucessoMsg && (
+                            {step === 'cart' && !successMsg && (
                                 <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
                                     {cartItems.length === 0 ? (
                                         <div className="py-16 text-center text-slate-400 space-y-3">
@@ -183,16 +182,16 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     <div className="flex items-center border border-slate-200 bg-white rounded-lg overflow-hidden shadow-2xs">
                                                         <button
-                                                            onClick={() => onUpdateQuantity(item._id || item.id, (item.quantidade || 1) - 1)}
+                                                            onClick={() => onUpdateQuantity(item._id || item.id, (item.quantity || 1) - 1)}
                                                             className="px-2 py-1 text-slate-600 hover:bg-slate-50 text-xs font-bold"
                                                         >
                                                             -
                                                         </button>
                                                         <span className="px-2 py-1 text-xs font-semibold text-slate-800 min-w-[24px] text-center">
-                                                            {item.quantidade || 1}
+                                                            {item.quantity || 1}
                                                         </span>
                                                         <button
-                                                            onClick={() => onUpdateQuantity(item._id || item.id, (item.quantidade || 1) + 1)}
+                                                            onClick={() => onUpdateQuantity(item._id || item.id, (item.quantity || 1) + 1)}
                                                             className="px-2 py-1 text-slate-600 hover:bg-slate-50 text-xs font-bold"
                                                         >
                                                             +
@@ -214,7 +213,7 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                             )}
 
                             {/* Passo 2: Formulário do Cliente */}
-                            {step === 'checkout' && !sucessoMsg && (
+                            {step === 'checkout' && !successMsg && (
                                 <form onSubmit={handleCheckoutSubmit} id="checkout-form" className="py-4 space-y-3">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo</label>
@@ -342,12 +341,12 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                         </div>
 
                         {/* Rodapé / Botões */}
-                        {!sucessoMsg && (
+                        {!successMsg && (
                             <div className="pt-4 border-t border-slate-100 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-slate-500">Total:</span>
                                     <span className="text-lg font-extrabold text-slate-900">
-                                        R$ {totalCart.toFixed(2)}
+                                        R$ {cartTotal.toFixed(2)}
                                     </span>
                                 </div>
 

@@ -1,125 +1,137 @@
-
 "use client";
-
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 import StoreHeader from "../../components/StoreHeader";
 import GridProducts from "../../components/GridProducts";
 import Cart from "../../components/Cart";
 
-export default function PaginaLoja() {
+export default function StorePage() {
     const params = useParams();
     const slug = params?.slug;
+
     const [store, setStore] = useState(null);
-    const [carregandoLoja, setCarregandoLoja] = useState(true);
-    const [erroLoja, setErroLoja] = useState("");
-    const [produtos, setProdutos] = useState([]);
-    const [carregandoProdutos, setCarregandoProdutos] = useState(false);
-    const [searchItem, setSearchItem] = useState("");
+    const [loadingStore, setLoadingStore] = useState(true);
+    const [storeError, setStoreError] = useState("");
+
+    const [products, setProducts] = useState([]);
+    const [loadingProducts, setLoadingProducts] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
     const [searchInput, setSearchInput] = useState("");
-    const [paginaAtual, setPaginaAtual] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalProdutos, setTotalProdutos] = useState(0);
+    const [totalProducts, setTotalProducts] = useState(0);
     const [cartItems, setCartItems] = useState([]);
 
+    // 1º useEffect: Fetch Store Data
     useEffect(() => {
-        async function getStore() {
+        async function fetchStore() {
             try {
-                setCarregandoLoja(true);
-                setErroLoja("");
+                setLoadingStore(true);
+                setStoreError("");
 
-                const resposta = await axios.get(
+                const response = await axios.get(
                     `http://localhost:3000/store/${slug}`
                 );
-                setStore(resposta.data.store);
-            } catch (erro) {
-                setErroLoja("Não foi possível carregar as informações da loja.");
+                setStore(response.data.store);
+            } catch (error) {
+                const errorMsg = "Não foi possível carregar as informações da loja.";
+                setStoreError(errorMsg);
+                toast.error(errorMsg);
             } finally {
-                setCarregandoLoja(false);
+                setLoadingStore(false);
             }
         }
 
         if (slug) {
-            getStore();
+            fetchStore();
+        } else {
+            setLoadingStore(true);
         }
-        else {
-            setCarregandoLoja(true);
-        }
-
     }, [slug]);
 
+    // 2º useEffect: Fetch Products Catalog
     useEffect(() => {
-        async function getProducts() {
+        async function fetchProducts() {
             try {
-                setCarregandoProdutos(true);
+                setLoadingProducts(true);
 
-                let urlProducts = `http://localhost:3000/${slug}/products?page=${paginaAtual}&limit=12`;
+                let productsUrl = `http://localhost:3000/${slug}/products?page=${currentPage}&limit=12`;
 
-                if (searchItem.trim() !== "") {
-                    urlProducts += `&search=${encodeURIComponent(searchItem.trim())}`;
+                if (searchTerm.trim() !== "") {
+                    productsUrl += `&search=${encodeURIComponent(searchTerm.trim())}`;
                 }
 
-                const resposta = await axios.get(urlProducts);
+                const response = await axios.get(productsUrl);
 
-                setProdutos(resposta.data.docs || []);
-                setTotalPages(resposta.data.totalPages || 1);
-                setTotalProdutos(resposta.data.totalDocs || 0);
-            } catch (erro) {
-                console.log(erro);
-                setProdutos([]);
+                setProducts(response.data.docs || []);
+                setTotalPages(response.data.totalPages || 1);
+                setTotalProducts(response.data.totalDocs || 0);
+            } catch (error) {
+                console.error("Erro ao buscar produtos:", error);
+                toast.error("Erro ao carregar o catálogo de produtos. Tente novamente mais tarde.");
+
+                setProducts([]);
                 setTotalPages(1);
-                setTotalProdutos(0);
+                setTotalProducts(0);
             } finally {
-                setCarregandoProdutos(false);
+                setLoadingProducts(false);
             }
         }
 
         if (slug) {
-            getProducts();
+            fetchProducts();
         }
-    }, [slug, paginaAtual, searchItem]);
+    }, [slug, currentPage, searchTerm]);
 
-    function handleAddToCart(products) {
-        const idProduto = products._id;
+    function handleAddToCart(product) {
+        const productId = product._id;
 
-        setCartItems((itens) => {
-            const produtoExiste = itens.some(
-                (item) => item._id === idProduto
-            );
+        // Faz a verificação FORA do cálculo de estado
+        const productExists = cartItems.some(
+            (item) => item._id === productId
+        );
 
-            if (!produtoExiste) {
-                return [...itens, { ...products, quantidade: 1 }];
+        if (!productExists) {
+            toast.success("Produto adicionado ao carrinho!");
+        }
+
+        setCartItems((items) => {
+            if (!productExists) {
+                // Modificado 'quantidade' para 'quantity' para padronizar
+                return [...items, { ...product, quantity: 1 }];
             }
 
-            return itens.map((item) =>
-                item._id === idProduto
-                    ? { ...item, quantidade: item.quantidade + 1 }
+            return items.map((item) =>
+                item._id === productId
+                    ? { ...item, quantity: item.quantity + 1 }
                     : item
             );
         });
     }
 
-    function handleUpdateQuantity(id, newQtd) {
-        if (newQtd <= 0) {
+    function handleUpdateQuantity(id, newQty) {
+        if (newQty <= 0) {
             handleRemoveItem(id);
             return;
         }
 
-        setCartItems((itens) =>
-            itens.map((item) =>
+        setCartItems((items) =>
+            items.map((item) =>
                 item._id === id
-                    ? { ...item, quantidade: newQtd }
+                    ? { ...item, quantity: newQty }
                     : item
             )
         );
     }
 
     function handleRemoveItem(id) {
-        setCartItems((itens) =>
-            itens.filter((item) => item._id !== id)
+        setCartItems((items) =>
+            items.filter((item) => item._id !== id)
         );
+        toast.info("Item removido do carrinho.");
     }
 
     function handleClearCart() {
@@ -129,15 +141,14 @@ export default function PaginaLoja() {
     function handleSearchSubmit(event) {
         event.preventDefault();
 
-        setPaginaAtual(1);
-        setSearchItem(searchInput.trim());
+        setCurrentPage(1);
+        setSearchTerm(searchInput.trim());
     }
 
-    if (carregandoLoja) {
+    if (loadingStore) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-cyan-50/30">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent" />
-
                 <p className="text-sm font-medium text-slate-600">
                     Carregando dados da vitrine...
                 </p>
@@ -145,14 +156,13 @@ export default function PaginaLoja() {
         );
     }
 
-    if (erroLoja) {
+    if (storeError) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-cyan-50/30 p-4 text-center">
                 <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-rose-50 p-6">
                     <p className="font-semibold text-rose-600">
-                        {erroLoja}
+                        {storeError}
                     </p>
-
                     <p className="mt-2 text-xs text-slate-400">
                         Loja pesquisada: {slug}
                     </p>
@@ -168,7 +178,6 @@ export default function PaginaLoja() {
                     <h2 className="text-lg font-bold text-slate-800">
                         Loja não encontrada
                     </h2>
-
                     <p className="mt-2 text-sm text-slate-500">
                         Verifique se o endereço está correto ou tente novamente.
                     </p>
@@ -180,17 +189,16 @@ export default function PaginaLoja() {
     return (
         <main className="relative min-h-screen bg-cyan-50/20 px-4 py-8 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl space-y-6">
-
                 <StoreHeader store={store} />
 
                 <GridProducts
-                    produtos={produtos}
-                    carregando={carregandoProdutos}
-                    searchItem={searchItem}
-                    totalProdutos={totalProdutos}
+                    products={products}
+                    loading={loadingProducts}
+                    searchTerm={searchTerm}
+                    totalProducts={totalProducts}
                     totalPages={totalPages}
-                    paginaAtual={paginaAtual}
-                    setPaginaAtual={setPaginaAtual}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
                     handleSearchSubmit={handleSearchSubmit}
                     searchInput={searchInput}
                     setSearchInput={setSearchInput}
@@ -204,7 +212,6 @@ export default function PaginaLoja() {
                     onClearCart={handleClearCart}
                     storeId={store.id}
                 />
-
             </div>
         </main>
     );
