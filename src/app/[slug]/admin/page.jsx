@@ -4,10 +4,15 @@ import { useParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
 import GridProducts from "../../../components/GridProducts";
+import { useSession } from "next-auth/react"; // 1. Importando o useSession
 
 export default function AdminStorePage() {
     const params = useParams();
     const slug = params?.slug;
+
+    // 2. Pegando a sessão para acessar o Token JWT
+    const { data: session } = useSession();
+
     const [store, setStore] = useState(null);
     const [loadingStore, setLoadingStore] = useState(true);
     const [products, setProducts] = useState([]);
@@ -71,7 +76,7 @@ export default function AdminStorePage() {
     // Funções do Admin
     function openProductModal(product) {
         setSelectedProduct(product);
-        setSelectedFile(null); 
+        setSelectedFile(null);
     }
 
     function closeProductModal() {
@@ -79,6 +84,7 @@ export default function AdminStorePage() {
         setSelectedFile(null);
     }
 
+    // 3. NOVA FUNÇÃO DE UPLOAD COM S3 E JWT
     async function handleUploadPhoto(e) {
         e.preventDefault();
         if (!selectedFile) {
@@ -86,26 +92,60 @@ export default function AdminStorePage() {
             return;
         }
 
+        if (!session?.accessToken) {
+            toast.error("Sua sessão expirou. Faça login novamente.");
+            return;
+        }
+
         try {
             setUploading(true);
-            const formData = new FormData();
-            formData.append("image", selectedFile);
 
-            // Substitua pela sua rota real de upload no backend
-            await axios.patch(`http://localhost:3000/products/${selectedProduct._id}/photo`, formData, {
-                headers: { "Content-Type": "multipart/form-data" }
+            // PASSO A: Rota para gerar URL - /upload/presigned-url
+            const responseUrl = await axios.post(
+                'http://localhost:3000/upload/presigned-url',
+                {
+                    idProduto: selectedProduct.idProduto || selectedProduct._id,
+                    fileType: selectedFile.type
+                },
+                {
+                    headers: { 'Authorization': `Bearer ${session.accessToken}` }
+                }
+            );
+
+            const { uploadUrl, fileUrl } = responseUrl.data;
+
+            // PASSO B: Faz o upload direto para o S3 (AWS) usando a URL autorizada
+            await axios.put(uploadUrl, selectedFile, {
+                headers: { "Content-Type": selectedFile.type }
             });
+
+            // PASSO C: Rota para gravar a foto direto no banco - /photo
+            await axios.patch(
+                'http://localhost:3000/photo',
+                {
+                    idProduto: selectedProduct.idProduto || selectedProduct._id,
+                    fotoUrl: fileUrl
+                },
+                {
+                    headers: { 'Authorization': `Bearer ${session.accessToken}` }
+                }
+            );
 
             toast.success("Foto atualizada com sucesso!");
 
-            // Atualiza a lista de produtos localmente para refletir a nova imagem
+            // Atualiza a lista de produtos na tela instantaneamente
             setProducts((prev) =>
-                prev.map((p) => p._id === selectedProduct._id ? { ...p, imageUrl: URL.createObjectURL(selectedFile) } : p)
+                prev.map((p) =>
+                    (p._id === selectedProduct._id || p.idProduto === selectedProduct.idProduto)
+                        ? { ...p, fotoUrl: fileUrl, imageUrl: fileUrl }
+                        : p
+                )
             );
 
             closeProductModal();
         } catch (error) {
-            toast.error("Erro ao enviar a foto. Tente novamente.");
+            console.error("Erro no upload:", error);
+            toast.error(error.response?.data?.message || "Erro ao enviar a foto. Tente novamente.");
         } finally {
             setUploading(false);
         }
@@ -139,12 +179,10 @@ export default function AdminStorePage() {
                                 </span>
                             </div>
                         </div>
-
-                        {/* Você pode colocar estatísticas rápidas aqui no futuro, como "X produtos cadastrados" */}
                     </div>
                 </header>
 
-                {/* Componente GridProducts inserido aqui */}
+                {/* Componente GridProducts */}
                 <GridProducts
                     products={products}
                     loading={loadingProducts}
@@ -192,7 +230,7 @@ export default function AdminStorePage() {
                                 <form onSubmit={handleUploadPhoto} className="space-y-3">
                                     <input
                                         type="file"
-                                        accept="image/*"
+                                        accept="image/jpeg, image/png, image/webp"
                                         onChange={(e) => setSelectedFile(e.target.files[0])}
                                         className="w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
                                     />
