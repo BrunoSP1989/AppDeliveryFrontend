@@ -4,12 +4,10 @@ import axios from 'axios';
 
 export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClearCart, storeId }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [step, setStep] = useState('cart'); // 'cart' ou 'checkout'
+    const [step, setStep] = useState('cart');
     const [loading, setLoading] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('DINHEIRO');
-
-    // As chaves internas são mantidas em PT-BR para casar com o payload do Backend
     const [client, setClient] = useState({
         nome: '',
         telefone: '',
@@ -23,11 +21,11 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
 
     const cartTotal = cartItems.reduce((acc, item) => {
         const price = Number(item.precoVenda) || 0;
-        const qty = Number(item.quantity) || 1; // 👈 Atualizado para quantity
+        const qty = Number(item.quantity) || 1;
         return acc + price * qty;
     }, 0);
 
-    const totalItems = cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0); // 👈 Atualizado para quantity
+    const totalItems = cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -49,7 +47,7 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                     _id: productId,
                     idProduto: item.idProduto,
                     descricao: item.descricao,
-                    quantidade: item.quantity || 1, // 👈 Enviando como 'quantidade' pro backend ler certo
+                    quantidade: item.quantity || 1,
                     precoVenda: item.precoVenda
                 };
             });

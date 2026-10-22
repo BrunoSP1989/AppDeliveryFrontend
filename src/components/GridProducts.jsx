@@ -9,7 +9,8 @@ export default function GridProducts({
     handleSearchSubmit,
     searchInput,
     setSearchInput,
-    onAddToCart
+    onAddToCart,
+    buttonLabel = "Adicionar"
 }) {
     return (
         <section className="bg-white border border-slate-200/85 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
@@ -104,7 +105,7 @@ export default function GridProducts({
                                     onClick={() => onAddToCart && onAddToCart(product)}
                                     className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-2xs"
                                 >
-                                    Adicionar
+                                    {buttonLabel}
                                 </button>
                             </div>
                         </div>
