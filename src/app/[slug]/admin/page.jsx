@@ -71,7 +71,7 @@ export default function AdminStorePage() {
     // Funções do Admin
     function openProductModal(product) {
         setSelectedProduct(product);
-        setSelectedFile(null); // Reseta o arquivo selecionado ao abrir
+        setSelectedFile(null); 
     }
 
     function closeProductModal() {
@@ -183,7 +183,7 @@ export default function AdminStorePage() {
                                 <p className="text-slate-700 text-sm">{selectedProduct.description || "Nenhuma descrição disponível."}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-slate-800">Preço de Venda</p>
+                                <p className="text-lg font-semibold text-slate-800">Preço de Venda</p>
                                 <p className="text-slate-700 text-sm">{selectedProduct.precoVenda}</p>
                             </div>
 

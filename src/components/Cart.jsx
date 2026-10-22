@@ -110,10 +110,10 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                 )}
             </button>
 
-            {/* Modal / Drawer */}
+            {/* Modal / Drawer - Alterado para centralizar */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs transition-opacity">
-                    <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs transition-opacity">
+                    <div className="w-full max-w-md bg-white rounded-2xl max-h-[90vh] shadow-2xl flex flex-col p-6 overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
 
                         <div>
                             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -145,9 +145,9 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
 
                             {/* Passo 1: Lista do Carrinho */}
                             {step === 'cart' && !successMsg && (
-                                <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                                <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto">
                                     {cartItems.length === 0 ? (
-                                        <div className="py-16 text-center text-slate-400 space-y-3">
+                                        <div className="py-12 text-center text-slate-400 space-y-3">
                                             <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-300 mx-auto">
                                                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -156,7 +156,6 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
                                             <p className="text-sm font-medium text-slate-500">Seu carrinho está vazio.</p>
                                         </div>
                                     ) : (
-
                                         cartItems.map((item) => (
                                             <div key={item._id || item.id} className="flex items-center justify-between gap-3 p-3 bg-slate-50/75 border border-slate-100 rounded-xl">
                                                 <div className="flex items-center gap-3 min-w-0">
@@ -340,7 +339,7 @@ export default function Cart({ cartItems, onUpdateQuantity, onRemoveItem, onClea
 
                         {/* Rodapé / Botões */}
                         {!successMsg && (
-                            <div className="pt-4 border-t border-slate-100 space-y-3">
+                            <div className="pt-4 mt-auto border-t border-slate-100 space-y-3 shrink-0">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-slate-500">Total:</span>
                                     <span className="text-lg font-extrabold text-slate-900">
