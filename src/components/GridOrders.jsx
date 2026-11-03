@@ -67,18 +67,30 @@ export default function GridOrders({
                                 </div>
 
                                 {/* Endereço */}
-                                <p className="text-xs text-slate-500 leading-snug">
-                                    {[
-                                        order.client?.endereco,
-                                        order.client?.numero,
-                                        order.client?.bairro,
-                                        order.client?.cidade && order.client?.estado
-                                            ? `${order.client.cidade}/${order.client.estado}`
-                                            : order.client?.cidade,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(", ") || "Endereço não informado"}
-                                </p>
+                                <div className="space-y-1 text-sm leading-snug">
+                                    <p>
+                                        <span className="font-semibold text-slate-500">Endereço: </span>
+                                        <span className="text-slate-800">{order.client?.endereco || "-"}</span>
+                                    </p>
+                                    <p>
+                                        <span className="font-semibold text-slate-500">Número: </span>
+                                        <span className="text-slate-800">{order.client?.numero || "-"}</span>
+                                    </p>
+                                    <p>
+                                        <span className="font-semibold text-slate-500">Bairro: </span>
+                                        <span className="text-slate-800">{order.client?.bairro || "-"}</span>
+                                    </p>
+                                    <p>
+                                        <span className="font-semibold text-slate-500">Cidade: </span>
+                                        <span className="text-slate-800">
+                                            {order.client?.cidade
+                                                ? order.client?.estado
+                                                    ? `${order.client.cidade}/${order.client.estado}`
+                                                    : order.client.cidade
+                                                : "-"}
+                                        </span>
+                                    </p>
+                                </div>
 
                                 {/* Itens */}
                                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-1">
