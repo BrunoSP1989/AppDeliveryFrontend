@@ -11,8 +11,6 @@ import { useSession } from "next-auth/react"; // 1. Importando o useSession
 export default function AdminStorePage() {
     const params = useParams();
     const slug = params?.slug;
-
-    // 2. Pegando a sessão para acessar o Token JWT
     const { data: session } = useSession();
 
     const [store, setStore] = useState(null);
@@ -33,6 +31,7 @@ export default function AdminStorePage() {
     const [ordersTotalPages, setOrdersTotalPages] = useState(1)
     const [totalOrders, setTotalOrders] = useState(0);
     const [activeSection, setActiveSection] = useState("produtos");
+    const [motoboys, setMotoboys] = useState([]);
 
     // 1º useEffect: Fetch Store Data
     useEffect(() => {
@@ -83,6 +82,7 @@ export default function AdminStorePage() {
                     `http://localhost:3000/get-orders/?page=${ordersPage}&limit=10`,
                     { headers: { Authorization: `Bearer ${session.accessToken}` } }
                 );
+                console.log("Pedidos carregados:", response.data.docs || []);
                 setOrders(response.data.docs || []);
                 setOrdersTotalPages(response.data.totalPages || 1);
                 setTotalOrders(response.data.totalDocs || 0);
@@ -100,6 +100,25 @@ export default function AdminStorePage() {
         }
         if (session?.accessToken) fetchOrders();
     }, [session?.accessToken, ordersPage]);
+    // 4º useEffect: Fetch Motoboys
+    useEffect(() => {
+        async function fetchMotoboys() {
+            try {
+                const response = await axios.get(
+                    `http://localhost:3000/${slug}/motoboys`, // ajuste para a sua rota
+                    { headers: { Authorization: `Bearer ${session.accessToken}` } }
+                );
+                setMotoboys(response.data.motoboys || response.data || []);
+                console.log("Motoboys carregados:", response.data.motoboys || response.data || []);
+            } catch (error) {
+                if (error.response?.status !== 404) {
+                    toast.error("Erro ao carregar os entregadores.");
+                }
+                setMotoboys([]);
+            }
+        }
+        if (session?.accessToken) fetchMotoboys();
+    }, [session?.accessToken]);
 
     function handleSearchSubmit(event) {
         event.preventDefault();
@@ -184,9 +203,42 @@ export default function AdminStorePage() {
             setUploading(false);
         }
     }
+
+    async function handleAssignMotoboy(orderId, motoboyId) {
+        if (!session?.accessToken) {
+            toast.error("Sua sessão expirou. Faça login novamente.");
+            return;
+        }
+        const currentOrder = orders.find((o) => o._id === orderId);
+        if (currentOrder && currentOrder.motoboyId) {
+            toast.warning("Este pedido já possui um entregador vinculado e não pode ser alterado.");
+            return;
+        }
+
+        try {
+            const { data } = await axios.patch(
+                `http://localhost:3000/orders/${orderId}/motoboy`,
+                { motoboyId },
+                { headers: { Authorization: `Bearer ${session.accessToken}` } }
+            );
+
+            setOrders((prev) =>
+                prev.map((o) =>
+                    o._id === orderId ? { ...o, motoboyId: data.order.motoboyId, status: data.order.status } : o
+                )
+            );
+
+            toast.success("Entregador vinculado ao pedido!");
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message || "Erro ao vincular o entregador."
+            );
+        }
+    }
     const menuItems = [
         { id: "produtos", label: "Produtos", icon: "produtos", badge: totalProducts },
         { id: "pedidos", label: "Pedidos", icon: "pedidos", badge: totalOrders },
+        { id: "motoboys", label: "Motoboys", icon: "motoboys", badge: motoboys.length },
     ];
     if (loadingStore) {
         return (
@@ -258,6 +310,8 @@ export default function AdminStorePage() {
                             currentPage={ordersPage}
                             totalPages={ordersTotalPages}
                             setCurrentPage={setOrdersPage}
+                            motoboys={motoboys}
+                            onAssignMotoboy={handleAssignMotoboy}
                         />
                     )}
                 </div>

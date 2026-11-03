@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 const STATUS_STYLES = {
     default: "bg-slate-100 text-slate-700 border-slate-200",
 };
@@ -21,7 +23,21 @@ export default function GridOrders({
     totalPages,
     currentPage,
     setCurrentPage,
+    motoboys = [],
+    onAssignMotoboy,
 }) {
+    const [assigningId, setAssigningId] = useState(null);
+
+    const handleChangeMotoboy = async (orderId, motoboyId) => {
+        if (!motoboyId) return;
+        try {
+            setAssigningId(orderId);
+            await onAssignMotoboy(orderId, motoboyId);
+        } finally {
+            setAssigningId(null);
+        }
+    };
+
     return (
         <section className="bg-white border border-slate-200/85 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
             <div className="pb-6 border-b border-slate-100">
@@ -111,6 +127,64 @@ export default function GridOrders({
                                         <p className="text-xs text-slate-400">Sem itens.</p>
                                     )}
                                 </div>
+
+                                {/* Entregador */}
+                                {(() => {
+                                    const assignedId = order.motoboyId?._id || order.motoboyId || "";
+                                    const assignedMotoboy = assignedId
+                                        ? motoboys.find((m) => m._id === assignedId)
+                                        : null;
+                                    const assignedName =
+                                        assignedMotoboy?.name || order.motoboyId?.name || "Entregador vinculado";
+
+                                    return (
+                                        <div className="space-y-1">
+                                            <label
+                                                htmlFor={`motoboy-${order._id}`}
+                                                className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider"
+                                            >
+                                                Entregador
+                                            </label>
+
+                                            {assignedId ? (
+                                                <div
+                                                    className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 cursor-not-allowed"
+                                                    title="Entregador já vinculado a este pedido"
+                                                >
+                                                    <span className="truncate">{assignedName}</span>
+                                                    <svg
+                                                        className="w-4 h-4 shrink-0 text-emerald-600"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth="2"
+                                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    id={`motoboy-${order._id}`}
+                                                    value=""
+                                                    onChange={(e) => handleChangeMotoboy(order._id, e.target.value)}
+                                                    disabled={assigningId === order._id}
+                                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    <option value="">Selecione um entregador</option>
+                                                    {motoboys.map((m) => (
+                                                        <option key={m._id} value={m._id}>
+                                                            {m.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* Rodapé: data + total */}
