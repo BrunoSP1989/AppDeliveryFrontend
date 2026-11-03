@@ -4,6 +4,8 @@ import { useParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
 import GridProducts from "../../../components/GridProducts";
+import GridOrders from "../../../components/GridOrders";
+import AdminSidebar from "../../../components/AdminSidebar";
 import { useSession } from "next-auth/react"; // 1. Importando o useSession
 
 export default function AdminStorePage() {
@@ -25,6 +27,12 @@ export default function AdminStorePage() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [orders, setOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+    const [ordersPage, setOrdersPage] = useState(1);
+    const [ordersTotalPages, setOrdersTotalPages] = useState(1)
+    const [totalOrders, setTotalOrders] = useState(0);
+    const [activeSection, setActiveSection] = useState("produtos");
 
     // 1º useEffect: Fetch Store Data
     useEffect(() => {
@@ -66,6 +74,32 @@ export default function AdminStorePage() {
         }
         if (slug) fetchProducts();
     }, [slug, currentPage, searchTerm]);
+    // 3º useEffect: Fetch Orders
+    useEffect(() => {
+        async function fetchOrders() {
+            try {
+                setLoadingOrders(true);
+                const response = await axios.get(
+                    `http://localhost:3000/get-orders/?page=${ordersPage}&limit=10`,
+                    { headers: { Authorization: `Bearer ${session.accessToken}` } }
+                );
+                setOrders(response.data.docs || []);
+                setOrdersTotalPages(response.data.totalPages || 1);
+                setTotalOrders(response.data.totalDocs || 0);
+            } catch (error) {
+                // O backend devolve 404 quando não há pedidos: não é erro de verdade
+                if (error.response?.status !== 404) {
+                    toast.error("Erro ao carregar os pedidos.");
+                }
+                setOrders([]);
+                setOrdersTotalPages(1);
+                setTotalOrders(0);
+            } finally {
+                setLoadingOrders(false);
+            }
+        }
+        if (session?.accessToken) fetchOrders();
+    }, [session?.accessToken, ordersPage]);
 
     function handleSearchSubmit(event) {
         event.preventDefault();
@@ -150,7 +184,10 @@ export default function AdminStorePage() {
             setUploading(false);
         }
     }
-
+    const menuItems = [
+        { id: "produtos", label: "Produtos", icon: "produtos", badge: totalProducts },
+        { id: "pedidos", label: "Pedidos", icon: "pedidos", badge: totalOrders },
+    ];
     if (loadingStore) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50">
@@ -161,93 +198,122 @@ export default function AdminStorePage() {
     }
 
     return (
-        <main className="relative min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-7xl space-y-6">
+        <div className="min-h-screen bg-slate-50 lg:flex">
+            <AdminSidebar
+                storeName={store?.fantasia || slug}
+                items={menuItems}
+                active={activeSection}
+                onSelect={setActiveSection}
+            />
 
-                {/* Header Admin */}
-                <header className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50 p-6 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-800">
-                                Painel Administrativo
-                            </h1>
-                            <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                                <span>Gerenciando catálogo da loja</span>
-                                <span className="h-1 w-1 rounded-full bg-slate-300"></span>
-                                <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                                    {store?.fantasia || slug}
-                                </span>
+            <main className="relative min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6">
+
+                    {/* Header Admin */}
+                    <header className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50 p-6 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+                                    {activeSection === "produtos" ? "Produtos" : "Pedidos"}
+                                </h1>
+                                <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                                    <span>
+                                        {activeSection === "produtos"
+                                            ? "Gerenciando catálogo da loja"
+                                            : "Acompanhando pedidos da loja"}
+                                    </span>
+                                    <span className="h-1 w-1 rounded-full bg-slate-300"></span>
+                                    <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                                        {store?.fantasia || slug}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </header>
+                    </header>
 
-                {/* Componente GridProducts */}
-                <GridProducts
-                    products={products}
-                    loading={loadingProducts}
-                    searchTerm={searchTerm}
-                    totalProducts={totalProducts}
-                    totalPages={totalPages}
-                    currentPage={currentPage}
-                    setCurrentPage={setCurrentPage}
-                    handleSearchSubmit={handleSearchSubmit}
-                    searchInput={searchInput}
-                    setSearchInput={setSearchInput}
-                    onAddToCart={openProductModal}
-                    buttonLabel='Editar'
-                />
-            </div>
+                    {/* Seção: Produtos */}
+                    {activeSection === "produtos" && (
+                        <GridProducts
+                            products={products}
+                            loading={loadingProducts}
+                            searchTerm={searchTerm}
+                            totalProducts={totalProducts}
+                            totalPages={totalPages}
+                            currentPage={currentPage}
+                            setCurrentPage={setCurrentPage}
+                            handleSearchSubmit={handleSearchSubmit}
+                            searchInput={searchInput}
+                            setSearchInput={setSearchInput}
+                            onAddToCart={openProductModal}
+                            buttonLabel="Editar"
+                        />
+                    )}
 
-            {/* Modal de Visualização e Upload de Foto */}
-            {selectedProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                        <div className="flex justify-between items-start mb-4">
-                            <h2 className="text-lg font-bold text-slate-800">Detalhes do Produto</h2>
-                            <button onClick={closeProductModal} className="text-slate-400 hover:text-slate-600">
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-500">Nome do Produto</p>
-                                <p className="text-slate-800">{selectedProduct.descricao}</p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm font-semibold text-slate-500">Descrição</p>
-                                <p className="text-slate-700 text-sm">{selectedProduct.description || "Nenhuma descrição disponível."}</p>
-                            </div>
-                            <div>
-                                <p className="text-lg font-semibold text-slate-800">Preço de Venda</p>
-                                <p className="text-slate-700 text-sm">{selectedProduct.precoVenda}</p>
-                            </div>
-
-                            <div className="border-t border-slate-200 pt-4 mt-4">
-                                <h3 className="text-sm font-bold text-slate-800 mb-2">Atualizar Foto</h3>
-                                <form onSubmit={handleUploadPhoto} className="space-y-3">
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg, image/png, image/webp"
-                                        onChange={(e) => setSelectedFile(e.target.files[0])}
-                                        className="w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
-                                    />
-
-                                    <button
-                                        type="submit"
-                                        disabled={uploading || !selectedFile}
-                                        className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {uploading ? "Enviando..." : "Salvar Foto"}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                    {/* Seção: Pedidos */}
+                    {activeSection === "pedidos" && (
+                        <GridOrders
+                            orders={orders}
+                            loading={loadingOrders}
+                            totalOrders={totalOrders}
+                            currentPage={ordersPage}
+                            totalPages={ordersTotalPages}
+                            setCurrentPage={setOrdersPage}
+                        />
+                    )}
                 </div>
-            )}
-        </main>
+
+                {/* Modal de Visualização e Upload de Foto */}
+                {selectedProduct && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                            <div className="flex justify-between items-start mb-4">
+                                <h2 className="text-lg font-bold text-slate-800">Detalhes do Produto</h2>
+                                <button onClick={closeProductModal} className="text-slate-400 hover:text-slate-600">
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-500">Nome do Produto</p>
+                                    <p className="text-slate-800">{selectedProduct.descricao}</p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-500">Descrição</p>
+                                    <p className="text-slate-700 text-sm">
+                                        {selectedProduct.description || "Nenhuma descrição disponível."}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-lg font-semibold text-slate-800">Preço de Venda</p>
+                                    <p className="text-slate-700 text-sm">{selectedProduct.precoVenda}</p>
+                                </div>
+
+                                <div className="border-t border-slate-200 pt-4 mt-4">
+                                    <h3 className="text-sm font-bold text-slate-800 mb-2">Atualizar Foto</h3>
+                                    <form onSubmit={handleUploadPhoto} className="space-y-3">
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg, image/png, image/webp"
+                                            onChange={(e) => setSelectedFile(e.target.files[0])}
+                                            className="w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+                                        />
+
+                                        <button
+                                            type="submit"
+                                            disabled={uploading || !selectedFile}
+                                            className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {uploading ? "Enviando..." : "Salvar Foto"}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </div>
     );
 }

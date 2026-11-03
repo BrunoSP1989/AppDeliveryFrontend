@@ -1,0 +1,150 @@
+"use client";
+
+const STATUS_STYLES = {
+    default: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
+function StatusBadge({ status }) {
+    return (
+        <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES.default}`}
+        >
+            {status || "-"}
+        </span>
+    );
+}
+
+export default function GridOrders({
+    orders,
+    loading,
+    totalOrders,
+    totalPages,
+    currentPage,
+    setCurrentPage,
+}) {
+    return (
+        <section className="bg-white border border-slate-200/85 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="pb-6 border-b border-slate-100">
+                <h2 className="text-xl font-bold text-slate-900">Pedidos Recebidos</h2>
+                <p className="text-sm text-slate-500 mt-0.5">
+                    {typeof totalOrders === "number"
+                        ? `Acompanhe os pedidos da loja (${totalOrders} encontrados).`
+                        : "Acompanhe os pedidos da loja."}
+                </p>
+            </div>
+
+            {loading ? (
+                <div className="py-16 text-center">
+                    <div className="w-6 h-6 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-sm text-slate-500">Carregando pedidos...</p>
+                </div>
+            ) : orders.length === 0 ? (
+                <div className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center bg-slate-50/50">
+                    <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <p className="text-sm font-medium text-slate-600">Nenhum pedido encontrado.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {orders.map((order) => (
+                        <div
+                            key={order._id}
+                            className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                        >
+                            <div className="space-y-3">
+                                {/* Topo: cliente + status */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <h3 className="font-semibold text-slate-800 text-sm truncate">
+                                            {order.client?.nome || "Cliente não informado"}
+                                        </h3>
+                                        <p className="text-xs text-slate-500">
+                                            {order.client?.telefone || "Sem telefone"}
+                                        </p>
+                                    </div>
+                                    <StatusBadge status={order.status} />
+                                </div>
+
+                                {/* Endereço */}
+                                <p className="text-xs text-slate-500 leading-snug">
+                                    {[
+                                        order.client?.endereco,
+                                        order.client?.numero,
+                                        order.client?.bairro,
+                                        order.client?.cidade && order.client?.estado
+                                            ? `${order.client.cidade}/${order.client.estado}`
+                                            : order.client?.cidade,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(", ") || "Endereço não informado"}
+                                </p>
+
+                                {/* Itens */}
+                                <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-1">
+                                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        Itens
+                                    </span>
+                                    {order.items?.length ? (
+                                        order.items.map((item, i) => (
+                                            <p
+                                                key={item.idProduto || i}
+                                                className="text-xs text-slate-700 line-clamp-1"
+                                            >
+                                                <strong className="text-slate-900">{item.quantidade}x</strong>{" "}
+                                                {item.descricao}
+                                            </p>
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-400">Sem itens.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Rodapé: data + total */}
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-base font-bold text-cyan-700">
+                                        {typeof order.total === "number"
+                                            ? order.total.toLocaleString("pt-BR", {
+                                                style: "currency",
+                                                currency: "BRL",
+                                            })
+                                            : order.total ?? "-"}
+                                    </span>
+                                    <span className="text-[11px] text-slate-400 font-medium">
+                                        {order.createdAt
+                                            ? new Date(order.createdAt).toLocaleString("pt-BR")
+                                            : "-"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-sm font-medium text-slate-600">
+                        Página <strong className="text-slate-900">{currentPage}</strong> de <strong className="text-slate-900">{totalPages}</strong>
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            )}
+        </section>
+    );
+}
