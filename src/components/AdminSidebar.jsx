@@ -23,7 +23,7 @@ function SidebarContent({ storeName, items, active, onSelect }) {
         <div className="flex h-full flex-col bg-slate-900 text-slate-300">
             {/* Marca / loja */}
             <div className="flex items-center gap-3 border-b border-slate-800 px-5 py-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white">
                     {(storeName || "L").charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -44,7 +44,7 @@ function SidebarContent({ storeName, items, active, onSelect }) {
                             key={item.id}
                             onClick={() => onSelect(item.id)}
                             className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${isActive
-                                    ? "bg-indigo-600 text-white shadow-sm"
+                                    ? "bg-blue-600 text-white shadow-sm"
                                     : "text-slate-400 hover:bg-slate-800 hover:text-white"
                                 }`}
                         >
