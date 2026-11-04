@@ -82,7 +82,7 @@ export default function AdminStorePage() {
                     `http://localhost:3000/get-orders/?page=${ordersPage}&limit=10`,
                     { headers: { Authorization: `Bearer ${session.accessToken}` } }
                 );
-                console.log("Pedidos carregados:", response.data.docs || []);
+
                 setOrders(response.data.docs || []);
                 setOrdersTotalPages(response.data.totalPages || 1);
                 setTotalOrders(response.data.totalDocs || 0);
@@ -109,7 +109,6 @@ export default function AdminStorePage() {
                     { headers: { Authorization: `Bearer ${session.accessToken}` } }
                 );
                 setMotoboys(response.data.motoboys || response.data || []);
-                console.log("Motoboys carregados:", response.data.motoboys || response.data || []);
             } catch (error) {
                 if (error.response?.status !== 404) {
                     toast.error("Erro ao carregar os entregadores.");
@@ -311,6 +310,7 @@ export default function AdminStorePage() {
                             totalPages={ordersTotalPages}
                             setCurrentPage={setOrdersPage}
                             motoboys={motoboys}
+                            store={store}
                             onAssignMotoboy={handleAssignMotoboy}
                         />
                     )}

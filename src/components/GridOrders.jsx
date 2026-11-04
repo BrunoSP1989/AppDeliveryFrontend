@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PrintOrderButton from "./PrintOrderButton";
 
 const STATUS_STYLES = {
     default: "bg-slate-100 text-slate-700 border-slate-200",
@@ -24,6 +25,7 @@ export default function GridOrders({
     currentPage,
     setCurrentPage,
     motoboys = [],
+    store,
     onAssignMotoboy,
 }) {
     const [assigningId, setAssigningId] = useState(null);
@@ -187,8 +189,8 @@ export default function GridOrders({
                                 })()}
                             </div>
 
-                            {/* Rodapé: data + total */}
-                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                            {/* Rodapé: data + total + imprimir */}
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                                 <div className="flex flex-col">
                                     <span className="text-base font-bold text-cyan-700">
                                         {typeof order.total === "number"
@@ -204,6 +206,8 @@ export default function GridOrders({
                                             : "-"}
                                     </span>
                                 </div>
+
+                                <PrintOrderButton order={order} motoboys={motoboys} store={store} />
                             </div>
                         </div>
                     ))}
