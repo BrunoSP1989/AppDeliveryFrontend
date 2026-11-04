@@ -6,21 +6,23 @@ const money = (v) =>
 export const PAPER_WIDTH_MM = 80; // use 58 para bobina de 58mm
 
 export const RECEIPT_CSS = `
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; height: auto; }
   .receipt {
-    width: 72mm; /* 80mm da bobina menos a margem física dos roletes da impressora */
+    width: 72mm;
     padding: 2mm;
     font-family: "Courier New", monospace;
     font-size: 12px;
-    color: #000;
+    color: #000000;
+    font-weight: 750; /* Deixa todo o recibo ligeiramente mais encorpado */
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  .receipt h1 { font-size: 15px; text-align: center; margin: 0 0 4px; }
+  .receipt h1 { font-size: 15px; text-align: center; margin: 0 0 4px; font-weight: bold; }
   .receipt .center { text-align: center; }
   .receipt .sep { border-top: 1px dashed #000; margin: 6px 0; }
-  .receipt .row { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+  .receipt .row { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; }
+  .receipt .item-row { font-weight: bold; color: #000; } /* Força destaque nos itens */
   .receipt .total { font-size: 14px; font-weight: bold; }
   .receipt .label { font-weight: bold; }
 `;
@@ -62,15 +64,15 @@ export default function OrderReceipt({ order, motoboys = [], store = {} }) {
             <div className="label">ITENS</div>
             {order.items?.length ? (
                 order.items.map((item, i) => (
-                    <div className="row" key={item.idProduto || i}>
+                    <div className="row item-row" key={item.idProduto || i}>
                         <span>{item.quantidade}x {item.descricao}</span>
-                        {typeof item.preco === "number" && (
-                            <span>{money(item.preco * item.quantidade)}</span>
+                        {typeof item.precoVenda === "number" && (
+                            <span>{money(item.precoVenda * item.quantidade)}</span>
                         )}
                     </div>
                 ))
             ) : (
-                <div>Sem itens.</div>
+                <div className="row item-row">Sem itens.</div>
             )}
 
             <div className="sep" />

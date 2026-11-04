@@ -82,7 +82,7 @@ export default function AdminStorePage() {
                     `http://localhost:3000/get-orders/?page=${ordersPage}&limit=10`,
                     { headers: { Authorization: `Bearer ${session.accessToken}` } }
                 );
-
+                
                 setOrders(response.data.docs || []);
                 setOrdersTotalPages(response.data.totalPages || 1);
                 setTotalOrders(response.data.totalDocs || 0);
@@ -310,8 +310,8 @@ export default function AdminStorePage() {
                             totalPages={ordersTotalPages}
                             setCurrentPage={setOrdersPage}
                             motoboys={motoboys}
-                            store={store}
                             onAssignMotoboy={handleAssignMotoboy}
+                            store={store}
                         />
                     )}
                 </div>
