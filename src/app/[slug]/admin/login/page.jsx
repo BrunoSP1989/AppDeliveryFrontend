@@ -1,14 +1,15 @@
 'use client';
-
-import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import api from '../../../../lib/api';
+import { useAuth } from '../../../context/AuthContext'; // <--- Importação adicionada aqui
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Agora o hook está sendo usado corretamente dentro do componente
+    const { login } = useAuth();
 
     const router = useRouter();
     const params = useParams();
@@ -25,24 +26,12 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            await api.post('/login', { email, password });
+            await login(email, password);
+            router.push(`/${slug}/admin`);
         } catch (error) {
             alert('Credenciais inválidas');
+        } finally {
             setIsLoading(false);
-            return;
-        }
-        
-        const result = await signIn('credentials', {
-            redirect: false,
-            email,
-            password,
-        });
-
-        if (result?.error) {
-            alert('Credenciais inválidas');
-            setIsLoading(false);
-        } else {
-            router.push(`/${slug}/admin`);
         }
     };
 

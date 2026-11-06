@@ -1,17 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
 import GridProducts from "../../../components/GridProducts";
 import GridOrders from "../../../components/GridOrders";
 import AdminSidebar from "../../../components/AdminSidebar";
-import { useSession } from "next-auth/react"; // 1. Importando o useSession
+import api from "../../../lib/api";
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminStorePage() {
+    const { user, loading } = useAuth();
     const params = useParams();
+    const router = useRouter();
     const slug = params?.slug;
-    const { data: session } = useSession();
 
     const [store, setStore] = useState(null);
     const [loadingStore, setLoadingStore] = useState(true);
@@ -28,17 +30,24 @@ export default function AdminStorePage() {
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [ordersPage, setOrdersPage] = useState(1);
-    const [ordersTotalPages, setOrdersTotalPages] = useState(1)
+    const [ordersTotalPages, setOrdersTotalPages] = useState(1);
     const [totalOrders, setTotalOrders] = useState(0);
     const [activeSection, setActiveSection] = useState("produtos");
     const [motoboys, setMotoboys] = useState([]);
+
+    // Proteção de rota
+    useEffect(() => {
+        if (!loading && !user) {
+            router.replace(`/${slug}/admin/login`);
+        }
+    }, [loading, user, router, slug]);
 
     // 1º useEffect: Fetch Store Data
     useEffect(() => {
         async function fetchStore() {
             try {
                 setLoadingStore(true);
-                const response = await axios.get(`http://localhost:3000/store/${slug}`);
+                const response = await api.get(`store/${slug}`);
                 setStore(response.data.store);
             } catch (error) {
                 toast.error("Não foi possível carregar as informações da loja.");
@@ -49,19 +58,19 @@ export default function AdminStorePage() {
         if (slug) fetchStore();
     }, [slug]);
 
-    // 2º useEffect: Fetch Products
+    // 2º useEffect: Fetch Products (Alterado para usar a instância 'api' em vez de localhost fixo)
     useEffect(() => {
         async function fetchProducts() {
             try {
                 setLoadingProducts(true);
-                let productsUrl = `http://localhost:3000/${slug}/products?page=${currentPage}&limit=12`;
+                let productsUrl = `/${slug}/products?page=${currentPage}&limit=12`;
                 if (searchTerm.trim() !== "") {
                     productsUrl += `&search=${encodeURIComponent(searchTerm.trim())}`;
                 }
-                const response = await axios.get(productsUrl);
+                const response = await api.get(productsUrl);
                 setProducts(response.data.docs || []);
                 setTotalPages(response.data.totalPages || 1);
-                setTotalProducts(response.data.totalDocs || 0); // Atualizando o total
+                setTotalProducts(response.data.totalDocs || 0);
             } catch (error) {
                 toast.error("Erro ao carregar os produtos.");
                 setProducts([]);
@@ -73,21 +82,20 @@ export default function AdminStorePage() {
         }
         if (slug) fetchProducts();
     }, [slug, currentPage, searchTerm]);
+
     // 3º useEffect: Fetch Orders
     useEffect(() => {
         async function fetchOrders() {
             try {
                 setLoadingOrders(true);
-                const response = await axios.get(
-                    `http://localhost:3000/get-orders/?page=${ordersPage}&limit=10`,
-                    { headers: { Authorization: `Bearer ${session.accessToken}` } }
+                const response = await api.get(
+                    `get-orders/?page=${ordersPage}&limit=10`
                 );
-                
+
                 setOrders(response.data.docs || []);
                 setOrdersTotalPages(response.data.totalPages || 1);
                 setTotalOrders(response.data.totalDocs || 0);
             } catch (error) {
-                // O backend devolve 404 quando não há pedidos: não é erro de verdade
                 if (error.response?.status !== 404) {
                     toast.error("Erro ao carregar os pedidos.");
                 }
@@ -98,16 +106,14 @@ export default function AdminStorePage() {
                 setLoadingOrders(false);
             }
         }
-        if (session?.accessToken) fetchOrders();
-    }, [session?.accessToken, ordersPage]);
+        if (user) fetchOrders();
+    }, [user, ordersPage]);
+
     // 4º useEffect: Fetch Motoboys
     useEffect(() => {
         async function fetchMotoboys() {
             try {
-                const response = await axios.get(
-                    `http://localhost:3000/${slug}/motoboys`, // ajuste para a sua rota
-                    { headers: { Authorization: `Bearer ${session.accessToken}` } }
-                );
+                const response = await api.get(`${slug}/motoboys`);
                 setMotoboys(response.data.motoboys || response.data || []);
             } catch (error) {
                 if (error.response?.status !== 404) {
@@ -116,8 +122,8 @@ export default function AdminStorePage() {
                 setMotoboys([]);
             }
         }
-        if (session?.accessToken) fetchMotoboys();
-    }, [session?.accessToken]);
+        if (user) fetchMotoboys();
+    }, [user, slug]);
 
     function handleSearchSubmit(event) {
         event.preventDefault();
@@ -125,7 +131,6 @@ export default function AdminStorePage() {
         setSearchTerm(searchInput.trim());
     }
 
-    // Funções do Admin
     function openProductModal(product) {
         setSelectedProduct(product);
         setSelectedFile(null);
@@ -136,7 +141,7 @@ export default function AdminStorePage() {
         setSelectedFile(null);
     }
 
-    // 3. NOVA FUNÇÃO DE UPLOAD COM S3 E JWT
+    // Upload de Foto
     async function handleUploadPhoto(e) {
         e.preventDefault();
         if (!selectedFile) {
@@ -144,7 +149,7 @@ export default function AdminStorePage() {
             return;
         }
 
-        if (!session?.accessToken) {
+        if (!user) {
             toast.error("Sua sessão expirou. Faça login novamente.");
             return;
         }
@@ -152,40 +157,25 @@ export default function AdminStorePage() {
         try {
             setUploading(true);
 
-            // PASSO A: Rota para gerar URL - /upload/presigned-url
-            const responseUrl = await axios.post(
-                'http://localhost:3000/upload/presigned-url',
-                {
-                    idProduto: selectedProduct.idProduto || selectedProduct._id,
-                    fileType: selectedFile.type
-                },
-                {
-                    headers: { 'Authorization': `Bearer ${session.accessToken}` }
-                }
-            );
+            const responseUrl = await api.post('/upload/presigned-url', {
+                idProduto: selectedProduct.idProduto || selectedProduct._id,
+                fileType: selectedFile.type
+            });
 
             const { uploadUrl, fileUrl } = responseUrl.data;
 
-            // PASSO B: Faz o upload direto para o S3 (AWS) usando a URL autorizada
+            // S3 direto com o arquivo (necessário axios puro pois o S3 não usa seus cookies)
             await axios.put(uploadUrl, selectedFile, {
                 headers: { "Content-Type": selectedFile.type }
             });
 
-            // PASSO C: Rota para gravar a foto direto no banco - /photo
-            await axios.patch(
-                'http://localhost:3000/photo',
-                {
-                    idProduto: selectedProduct.idProduto || selectedProduct._id,
-                    fotoUrl: fileUrl
-                },
-                {
-                    headers: { 'Authorization': `Bearer ${session.accessToken}` }
-                }
-            );
+            await api.patch('/photo', {
+                idProduto: selectedProduct.idProduto || selectedProduct._id,
+                fotoUrl: fileUrl
+            });
 
             toast.success("Foto atualizada com sucesso!");
 
-            // Atualiza a lista de produtos na tela instantaneamente
             setProducts((prev) =>
                 prev.map((p) =>
                     (p._id === selectedProduct._id || p.idProduto === selectedProduct.idProduto)
@@ -204,7 +194,7 @@ export default function AdminStorePage() {
     }
 
     async function handleAssignMotoboy(orderId, motoboyId) {
-        if (!session?.accessToken) {
+        if (!user) {
             toast.error("Sua sessão expirou. Faça login novamente.");
             return;
         }
@@ -215,11 +205,7 @@ export default function AdminStorePage() {
         }
 
         try {
-            const { data } = await axios.patch(
-                `http://localhost:3000/orders/${orderId}/motoboy`,
-                { motoboyId },
-                { headers: { Authorization: `Bearer ${session.accessToken}` } }
-            );
+            const { data } = await api.patch(`/orders/${orderId}/motoboy`, { motoboyId });
 
             setOrders((prev) =>
                 prev.map((o) =>
@@ -234,12 +220,14 @@ export default function AdminStorePage() {
             );
         }
     }
+
     const menuItems = [
         { id: "produtos", label: "Produtos", icon: "produtos", badge: totalProducts },
         { id: "pedidos", label: "Pedidos", icon: "pedidos", badge: totalOrders },
         { id: "motoboys", label: "Motoboys", icon: "motoboys", badge: motoboys.length },
     ];
-    if (loadingStore) {
+
+    if (loadingStore || loading) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-500 border-t-transparent" />

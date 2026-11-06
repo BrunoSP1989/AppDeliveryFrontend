@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "../app/context/AuthContext"; 
 
 const ICONS = {
     produtos: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
@@ -19,6 +20,20 @@ function Icon({ name, className = "h-5 w-5" }) {
 }
 
 function SidebarContent({ storeName, items, active, onSelect }) {
+    const { logout } = useAuth();
+    const router = useRouter();
+    const params = useParams();
+    const slug = params?.slug || '';
+
+    async function handleLogout() {
+        try {
+            await logout(); // Limpa o cookie http-only no backend e zera o user no context
+            router.replace(`/${slug}/admin/login`); // Redireciona para a tela de login da loja atual
+        } catch (error) {
+            console.error("Erro ao fazer logout:", error);
+        }
+    }
+
     return (
         <div className="flex h-full flex-col bg-slate-900 text-slate-300">
             {/* Marca / loja */}
@@ -68,7 +83,7 @@ function SidebarContent({ storeName, items, active, onSelect }) {
             {/* Rodapé */}
             <div className="border-t border-slate-800 p-3">
                 <button
-                    onClick={() => signOut()}
+                    onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                 >
                     <Icon name="sair" />
