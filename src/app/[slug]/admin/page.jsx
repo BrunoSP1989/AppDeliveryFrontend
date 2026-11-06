@@ -5,6 +5,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import GridProducts from "../../../components/GridProducts";
 import GridOrders from "../../../components/GridOrders";
+import GridMotoboys from "../../../components/GridMotoboys"; // <--- Importando o componente de motoboys
 import AdminSidebar from "../../../components/AdminSidebar";
 import api from "../../../lib/api";
 import { useAuth } from '../../context/AuthContext';
@@ -34,6 +35,7 @@ export default function AdminStorePage() {
     const [totalOrders, setTotalOrders] = useState(0);
     const [activeSection, setActiveSection] = useState("produtos");
     const [motoboys, setMotoboys] = useState([]);
+    const [loadingMotoboys, setLoadingMotoboys] = useState(false); // <--- Adicionado estado de loading para motoboys
 
     // Proteção de rota
     useEffect(() => {
@@ -58,7 +60,7 @@ export default function AdminStorePage() {
         if (slug) fetchStore();
     }, [slug]);
 
-    // 2º useEffect: Fetch Products (Alterado para usar a instância 'api' em vez de localhost fixo)
+    // 2º useEffect: Fetch Products
     useEffect(() => {
         async function fetchProducts() {
             try {
@@ -113,6 +115,7 @@ export default function AdminStorePage() {
     useEffect(() => {
         async function fetchMotoboys() {
             try {
+                setLoadingMotoboys(true); // <--- Ativa o loading
                 const response = await api.get(`${slug}/motoboys`);
                 setMotoboys(response.data.motoboys || response.data || []);
             } catch (error) {
@@ -120,6 +123,8 @@ export default function AdminStorePage() {
                     toast.error("Erro ao carregar os entregadores.");
                 }
                 setMotoboys([]);
+            } finally {
+                setLoadingMotoboys(false); // <--- Desativa o loading
             }
         }
         if (user) fetchMotoboys();
@@ -141,7 +146,6 @@ export default function AdminStorePage() {
         setSelectedFile(null);
     }
 
-    // Upload de Foto
     async function handleUploadPhoto(e) {
         e.preventDefault();
         if (!selectedFile) {
@@ -164,7 +168,6 @@ export default function AdminStorePage() {
 
             const { uploadUrl, fileUrl } = responseUrl.data;
 
-            // S3 direto com o arquivo (necessário axios puro pois o S3 não usa seus cookies)
             await axios.put(uploadUrl, selectedFile, {
                 headers: { "Content-Type": selectedFile.type }
             });
@@ -253,13 +256,15 @@ export default function AdminStorePage() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <h1 className="text-2xl font-bold tracking-tight text-slate-800">
-                                    {activeSection === "produtos" ? "Produtos" : "Pedidos"}
+                                    {activeSection === "produtos" && "Produtos"}
+                                    {activeSection === "pedidos" && "Pedidos"}
+                                    {activeSection === "motoboys" && "Motoboys"}
                                 </h1>
                                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                                     <span>
-                                        {activeSection === "produtos"
-                                            ? "Gerenciando catálogo da loja"
-                                            : "Acompanhando pedidos da loja"}
+                                        {activeSection === "produtos" && "Gerenciando catálogo da loja"}
+                                        {activeSection === "pedidos" && "Acompanhando pedidos da loja"}
+                                        {activeSection === "motoboys" && "Gerenciando entregadores cadastrados"}
                                     </span>
                                     <span className="h-1 w-1 rounded-full bg-slate-300"></span>
                                     <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
@@ -300,6 +305,14 @@ export default function AdminStorePage() {
                             motoboys={motoboys}
                             onAssignMotoboy={handleAssignMotoboy}
                             store={store}
+                        />
+                    )}
+
+                    {/* Seção: Motoboys */}
+                    {activeSection === "motoboys" && (
+                        <GridMotoboys
+                            motoboys={motoboys}
+                            loading={loadingMotoboys}
                         />
                     )}
                 </div>
