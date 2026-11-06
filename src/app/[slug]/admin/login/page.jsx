@@ -3,6 +3,7 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../lib/api';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -23,6 +24,14 @@ export default function LoginPage() {
         e.preventDefault();
         setIsLoading(true);
 
+        try {
+            await api.post('/login', { email, password });
+        } catch (error) {
+            alert('Credenciais inválidas');
+            setIsLoading(false);
+            return;
+        }
+        
         const result = await signIn('credentials', {
             redirect: false,
             email,
