@@ -252,7 +252,7 @@ export default function AdminStorePage() {
                 <div className="mx-auto max-w-7xl space-y-6">
 
                     {/* Header Admin */}
-                    <header className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50 p-6 shadow-sm">
+                    <header className="rounded-2xl border border-slate-200 bg-linear-to-br from-white to-slate-50/50 p-6 shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <h1 className="text-2xl font-bold tracking-tight text-slate-800">
