@@ -42,6 +42,9 @@ export default function AdminStorePage() {
         if (!loading && !user) {
             router.replace(`/${slug}/admin/login`);
         }
+        else if (!loading && user && user.slug !== slug) {
+            router.replace(`/`);
+        }
     }, [loading, user, router, slug]);
 
     // 1º useEffect: Fetch Store Data
