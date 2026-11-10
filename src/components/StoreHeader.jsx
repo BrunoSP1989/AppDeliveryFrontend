@@ -48,7 +48,7 @@ export default function StoreHeader({ store }) {
                     {/* Bloco de Informações de Contato/Endereço */}
                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 text-xs text-slate-600">
                         {/* E-mail */}
-                        <div className="flex items-center gap-2 max-w-[180px]" title={store?.email}>
+                        <div className="flex items-center gap-2 max-w-45" title={store?.email}>
                             <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -68,7 +68,7 @@ export default function StoreHeader({ store }) {
                         </div>
 
                         {/* Endereço */}
-                        <div className="flex items-center gap-2 max-w-[200px]" title={store?.address}>
+                        <div className="flex items-center gap-2 max-w-50" title={store?.address}>
                             <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
