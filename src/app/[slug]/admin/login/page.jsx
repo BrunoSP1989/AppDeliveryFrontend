@@ -12,8 +12,7 @@ export default function LoginPage() {
     const router = useRouter();
     const params = useParams();
     const slug = params?.slug || '';
-
-    // Transforma 'minha-loja-legal' em 'Minha Loja Legal'
+    
     const storeName = slug
         .split('-')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))

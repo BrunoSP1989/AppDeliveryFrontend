@@ -35,14 +35,19 @@ export default function AdminStorePage() {
     const [totalOrders, setTotalOrders] = useState(0);
     const [activeSection, setActiveSection] = useState("produtos");
     const [motoboys, setMotoboys] = useState([]);
-    const [loadingMotoboys, setLoadingMotoboys] = useState(false); // <--- Adicionado estado de loading para motoboys
+    const [loadingMotoboys, setLoadingMotoboys] = useState(false);
 
     // Proteção de rota
     useEffect(() => {
-        if (!loading && !user) {
+        if (loading) return;
+        if (!user) {
             router.replace(`/${slug}/admin/login`);
+            return;
         }
-        else if (!loading && user && user.slug !== slug) {
+        const userSlug = user.slug ? String(user.slug).trim().toLowerCase() : '';
+        const currentSlug = slug ? String(slug).trim().toLowerCase() : '';
+
+        if (userSlug && currentSlug && userSlug !== currentSlug) {
             router.replace(`/`);
         }
     }, [loading, user, router, slug]);
