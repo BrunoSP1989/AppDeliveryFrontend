@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import GridProducts from "../../../components/GridProducts";
 import GridOrders from "../../../components/GridOrders";
-import GridMotoboys from "../../../components/GridMotoboys"; // <--- Importando o componente de motoboys
+import GridMotoboys from "../../../components/GridMotoboys";
 import AdminSidebar from "../../../components/AdminSidebar";
 import api from "../../../lib/api";
 import { useAuth } from '../../context/AuthContext';
@@ -36,6 +36,7 @@ export default function AdminStorePage() {
     const [activeSection, setActiveSection] = useState("produtos");
     const [motoboys, setMotoboys] = useState([]);
     const [loadingMotoboys, setLoadingMotoboys] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     // Proteção de rota
     useEffect(() => {
@@ -123,7 +124,7 @@ export default function AdminStorePage() {
     useEffect(() => {
         async function fetchMotoboys() {
             try {
-                setLoadingMotoboys(true); // <--- Ativa o loading
+                setLoadingMotoboys(true);
                 const response = await api.get(`${slug}/motoboys`);
                 setMotoboys(response.data.motoboys || response.data || []);
             } catch (error) {
@@ -132,11 +133,40 @@ export default function AdminStorePage() {
                 }
                 setMotoboys([]);
             } finally {
-                setLoadingMotoboys(false); // <--- Desativa o loading
+                setLoadingMotoboys(false);
             }
         }
         if (user) fetchMotoboys();
     }, [user, slug]);
+
+    // Alterar status da loja
+    async function handleChangeStoreStatus(newActive) {
+        if (!user) {
+            toast.error("Sua sessão expirou. Faça login novamente.");
+            return;
+        }
+        if (store?.active === newActive) return;
+
+        try {
+            setUpdatingStatus(true);
+            const { data } = await api.patch("/store/status", { active: newActive });
+
+            setStore((prev) => ({
+                ...prev,
+                active: data?.store?.active ?? newActive,
+            }));
+
+            toast.success(
+                newActive
+                    ? "Loja aberta! Ela voltou a receber pedidos."
+                    : "Loja fechada. Ela não receberá novos pedidos."
+            );
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Erro ao alterar o status da loja.");
+        } finally {
+            setUpdatingStatus(false);
+        }
+    }
 
     function handleSearchSubmit(event) {
         event.preventDefault();
@@ -236,7 +266,10 @@ export default function AdminStorePage() {
         { id: "produtos", label: "Produtos", icon: "produtos", badge: totalProducts },
         { id: "pedidos", label: "Pedidos", icon: "pedidos", badge: totalOrders },
         { id: "motoboys", label: "Motoboys", icon: "motoboys", badge: motoboys.length },
+        { id: "configuracoes", label: "Configurações", icon: "configuracoes" },
     ];
+
+    const isStoreActive = Boolean(store?.active);
 
     if (loadingStore || loading) {
         return (
@@ -267,12 +300,14 @@ export default function AdminStorePage() {
                                     {activeSection === "produtos" && "Produtos"}
                                     {activeSection === "pedidos" && "Pedidos"}
                                     {activeSection === "motoboys" && "Motoboys"}
+                                    {activeSection === "configuracoes" && "Configurações"}
                                 </h1>
                                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                                     <span>
                                         {activeSection === "produtos" && "Gerenciando catálogo da loja"}
                                         {activeSection === "pedidos" && "Acompanhando pedidos da loja"}
                                         {activeSection === "motoboys" && "Gerenciando entregadores cadastrados"}
+                                        {activeSection === "configuracoes" && "Ajustes gerais da loja"}
                                     </span>
                                     <span className="h-1 w-1 rounded-full bg-slate-300"></span>
                                     <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
@@ -322,6 +357,57 @@ export default function AdminStorePage() {
                             motoboys={motoboys}
                             loading={loadingMotoboys}
                         />
+                    )}
+
+                    {/* Seção: Configurações */}
+                    {activeSection === "configuracoes" && (
+                        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="text-lg font-bold text-slate-800">Status da loja</h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Defina se a loja está recebendo pedidos ou fechada.
+                            </p>
+
+                            <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span
+                                        className={`h-3 w-3 rounded-full ${isStoreActive ? "bg-emerald-500" : "bg-red-500"}`}
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">
+                                        Status atual:{" "}
+                                        <strong>{isStoreActive ? "Ativo" : "Fechado"}</strong>
+                                    </span>
+                                </div>
+
+                                <div className="inline-flex rounded-lg border border-slate-200 p-1">
+                                    <button
+                                        type="button"
+                                        disabled={updatingStatus || isStoreActive}
+                                        onClick={() => handleChangeStoreStatus(true)}
+                                        className={`rounded-md px-4 py-2 text-sm font-medium transition ${isStoreActive
+                                                ? "bg-emerald-600 text-white"
+                                                : "text-slate-600 hover:bg-slate-100"
+                                            } disabled:cursor-not-allowed disabled:opacity-60`}
+                                    >
+                                        Ativo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={updatingStatus || !isStoreActive}
+                                        onClick={() => handleChangeStoreStatus(false)}
+                                        className={`rounded-md px-4 py-2 text-sm font-medium transition ${!isStoreActive
+                                                ? "bg-red-600 text-white"
+                                                : "text-slate-600 hover:bg-slate-100"
+                                            } disabled:cursor-not-allowed disabled:opacity-60`}
+                                    >
+                                        Fechado
+                                    </button>
+                                </div>
+                            </div>
+
+                            {updatingStatus && (
+                                <p className="mt-3 text-xs text-slate-500">Atualizando status...</p>
+                            )}
+                        </section>
                     )}
                 </div>
 
