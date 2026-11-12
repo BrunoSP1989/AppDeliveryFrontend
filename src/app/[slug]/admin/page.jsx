@@ -37,6 +37,12 @@ export default function AdminStorePage() {
     const [motoboys, setMotoboys] = useState([]);
     const [loadingMotoboys, setLoadingMotoboys] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        oldpassword: "",
+        password: "",
+        confirmPassword: "",
+    });
+    const [changingPassword, setChangingPassword] = useState(false);
 
     // Proteção de rota
     useEffect(() => {
@@ -165,6 +171,51 @@ export default function AdminStorePage() {
             toast.error(error.response?.data?.message || "Erro ao alterar o status da loja.");
         } finally {
             setUpdatingStatus(false);
+        }
+    }
+    // Funções de alteração de senha
+    function handlePasswordChange(e) {
+        const { name, value } = e.target;
+        setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    }
+    // Função para atualizar a senha da loja
+    async function handleUpdatePassword(e) {
+        e.preventDefault();
+
+        if (!user) {
+            toast.error("Sua sessão expirou. Faça login novamente.");
+            return;
+        }
+
+        const { oldpassword, password, confirmPassword } = passwordForm;
+
+        if (!oldpassword || !password || !confirmPassword) {
+            toast.warning("Preencha todos os campos de senha.");
+            return;
+        }
+        if (password.length < 6) {
+            toast.warning("A nova senha deve ter pelo menos 6 caracteres.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.warning("A confirmação não confere com a nova senha.");
+            return;
+        }
+        if (oldpassword === password) {
+            toast.warning("A nova senha deve ser diferente da atual.");
+            return;
+        }
+
+        try {
+            setChangingPassword(true);
+            await api.patch("/store/update-password", { oldpassword, password });
+
+            toast.success("Senha alterada com sucesso!");
+            setPasswordForm({ oldpassword: "", password: "", confirmPassword: "" });
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Erro ao alterar a senha.");
+        } finally {
+            setChangingPassword(false);
         }
     }
 
@@ -361,53 +412,119 @@ export default function AdminStorePage() {
 
                     {/* Seção: Configurações */}
                     {activeSection === "configuracoes" && (
-                        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-lg font-bold text-slate-800">Status da loja</h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Defina se a loja está recebendo pedidos ou fechada.
-                            </p>
+                        <>
+                            {/* Status da loja */}
+                            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <h2 className="text-lg font-bold text-slate-800">Status da loja</h2>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Defina se a loja está recebendo pedidos ou fechada.
+                                </p>
 
-                            <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span
-                                        className={`h-3 w-3 rounded-full ${isStoreActive ? "bg-emerald-500" : "bg-red-500"}`}
-                                    />
-                                    <span className="text-sm font-medium text-slate-700">
-                                        Status atual:{" "}
-                                        <strong>{isStoreActive ? "Ativo" : "Fechado"}</strong>
-                                    </span>
-                                </div>
+                                <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className={`h-3 w-3 rounded-full ${isStoreActive ? "bg-emerald-500" : "bg-red-500"}`}
+                                        />
+                                        <span className="text-sm font-medium text-slate-700">
+                                            Status atual:{" "}
+                                            <strong>{isStoreActive ? "Ativo" : "Fechado"}</strong>
+                                        </span>
+                                    </div>
 
-                                <div className="inline-flex rounded-lg border border-slate-200 p-1">
-                                    <button
-                                        type="button"
-                                        disabled={updatingStatus || isStoreActive}
-                                        onClick={() => handleChangeStoreStatus(true)}
-                                        className={`rounded-md px-4 py-2 text-sm font-medium transition ${isStoreActive
+                                    <div className="inline-flex rounded-lg border border-slate-200 p-1">
+                                        <button
+                                            type="button"
+                                            disabled={updatingStatus || isStoreActive}
+                                            onClick={() => handleChangeStoreStatus(true)}
+                                            className={`rounded-md px-4 py-2 text-sm font-medium transition ${isStoreActive
                                                 ? "bg-emerald-600 text-white"
                                                 : "text-slate-600 hover:bg-slate-100"
-                                            } disabled:cursor-not-allowed disabled:opacity-60`}
-                                    >
-                                        Ativo
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={updatingStatus || !isStoreActive}
-                                        onClick={() => handleChangeStoreStatus(false)}
-                                        className={`rounded-md px-4 py-2 text-sm font-medium transition ${!isStoreActive
+                                                } disabled:cursor-not-allowed disabled:opacity-60`}
+                                        >
+                                            Ativo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={updatingStatus || !isStoreActive}
+                                            onClick={() => handleChangeStoreStatus(false)}
+                                            className={`rounded-md px-4 py-2 text-sm font-medium transition ${!isStoreActive
                                                 ? "bg-red-600 text-white"
                                                 : "text-slate-600 hover:bg-slate-100"
-                                            } disabled:cursor-not-allowed disabled:opacity-60`}
-                                    >
-                                        Fechado
-                                    </button>
+                                                } disabled:cursor-not-allowed disabled:opacity-60`}
+                                        >
+                                            Fechado
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {updatingStatus && (
-                                <p className="mt-3 text-xs text-slate-500">Atualizando status...</p>
-                            )}
-                        </section>
+                                {updatingStatus && (
+                                    <p className="mt-3 text-xs text-slate-500">Atualizando status...</p>
+                                )}
+                            </section>
+
+                            {/* Alterar senha */}
+                            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <h2 className="text-lg font-bold text-slate-800">Alterar senha</h2>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Informe a senha atual e escolha uma nova senha.
+                                </p>
+
+                                <form onSubmit={handleUpdatePassword} className="mt-5 max-w-md space-y-4">
+                                    <div>
+                                        <label htmlFor="oldpassword" className="mb-1 block text-sm font-medium text-slate-700">
+                                            Senha atual
+                                        </label>
+                                        <input
+                                            id="oldpassword"
+                                            name="oldpassword"
+                                            type="password"
+                                            autoComplete="current-password"
+                                            value={passwordForm.oldpassword}
+                                            onChange={handlePasswordChange}
+                                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+                                            Nova senha
+                                        </label>
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type="password"
+                                            autoComplete="new-password"
+                                            value={passwordForm.password}
+                                            onChange={handlePasswordChange}
+                                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-slate-700">
+                                            Confirmar nova senha
+                                        </label>
+                                        <input
+                                            id="confirmPassword"
+                                            name="confirmPassword"
+                                            type="password"
+                                            autoComplete="new-password"
+                                            value={passwordForm.confirmPassword}
+                                            onChange={handlePasswordChange}
+                                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={changingPassword}
+                                        className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {changingPassword ? "Alterando..." : "Alterar senha"}
+                                    </button>
+                                </form>
+                            </section>
+                        </>
                     )}
                 </div>
 
