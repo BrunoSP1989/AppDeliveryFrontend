@@ -43,6 +43,10 @@ export default function AdminStorePage() {
         confirmPassword: "",
     });
     const [changingPassword, setChangingPassword] = useState(false);
+    const [motoboyForm, setMotoboyForm] = useState({ name: "", commission: "" });
+    const [creatingMotoboy, setCreatingMotoboy] = useState(false);
+    const [reloadMotoboys, setReloadMotoboys] = useState(0);
+    const [showMotoboyModal, setShowMotoboyModal] = useState(false);
 
     // Proteção de rota
     useEffect(() => {
@@ -143,7 +147,7 @@ export default function AdminStorePage() {
             }
         }
         if (user) fetchMotoboys();
-    }, [user, slug]);
+    }, [user, slug, reloadMotoboys]);
 
     // Alterar status da loja
     async function handleChangeStoreStatus(newActive) {
@@ -312,6 +316,49 @@ export default function AdminStorePage() {
             );
         }
     }
+    function closeMotoboyModal() {
+        setShowMotoboyModal(false);
+        setMotoboyForm({ name: "", comission: "" });
+    }
+
+    function handleMotoboyFormChange(e) {
+        const { name, value } = e.target;
+        setMotoboyForm((prev) => ({ ...prev, [name]: value }));
+    }
+
+    async function handleCreateMotoboy(e) {
+        e.preventDefault();
+
+        if (!user) {
+            toast.error("Sua sessão expirou. Faça login novamente.");
+            return;
+        }
+
+        const name = motoboyForm.name.trim();
+        const commission = Number(String(motoboyForm.commission).replace(",", "."));
+
+        if (!name) {
+            toast.warning("Informe o nome do entregador.");
+            return;
+        }
+        if (motoboyForm.commission === "" || Number.isNaN(commission) || commission < 0) {
+            toast.warning("Informe uma comissão válida.");
+            return;
+        }
+
+        try {
+            setCreatingMotoboy(true);
+            await api.post("/store/register-motoboy", { name, commission });
+
+            toast.success("Entregador cadastrado com sucesso!");
+            closeMotoboyModal();
+            setReloadMotoboys((n) => n + 1);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Erro ao cadastrar o entregador.");
+        } finally {
+            setCreatingMotoboy(false);
+        }
+    }
 
     const menuItems = [
         { id: "produtos", label: "Produtos", icon: "produtos", badge: totalProducts },
@@ -402,11 +449,11 @@ export default function AdminStorePage() {
                         />
                     )}
 
-                    {/* Seção: Motoboys */}
                     {activeSection === "motoboys" && (
                         <GridMotoboys
                             motoboys={motoboys}
                             loading={loadingMotoboys}
+                            onAddMotoboy={() => setShowMotoboyModal(true)}
                         />
                     )}
 
@@ -527,6 +574,69 @@ export default function AdminStorePage() {
                         </>
                     )}
                 </div>
+                {showMotoboyModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                            <div className="flex justify-between items-start mb-4">
+                                <h2 className="text-lg font-bold text-slate-800">Novo entregador</h2>
+                                <button onClick={closeMotoboyModal} className="text-slate-400 hover:text-slate-600">
+                                    ✕
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateMotoboy} className="space-y-4">
+                                <div>
+                                    <label htmlFor="motoboy-name" className="mb-1 block text-sm font-medium text-slate-700">
+                                        Nome
+                                    </label>
+                                    <input
+                                        id="motoboy-name"
+                                        name="name"
+                                        type="text"
+                                        autoFocus
+                                        value={motoboyForm.name}
+                                        onChange={handleMotoboyFormChange}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="motoboy-comission" className="mb-1 block text-sm font-medium text-slate-700">
+                                        Comissão
+                                    </label>
+                                    <input
+                                        id="motoboy-comission"
+                                        name="commission"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        inputMode="decimal"
+                                        value={motoboyForm.commission}
+                                        onChange={handleMotoboyFormChange}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={closeMotoboyModal}
+                                        className="w-full rounded-lg border border-slate-300 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={creatingMotoboy}
+                                        className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {creatingMotoboy ? "Cadastrando..." : "Cadastrar"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
                 {/* Modal de Visualização e Upload de Foto */}
                 {selectedProduct && (
